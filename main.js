@@ -1,162 +1,212 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; 
-//^ optional three.js feature, let the user spin or orbit the camera around some point
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
 
-import {MTLLoader} from 'three/addons/loaders/MTLLoader.js'; // to load MTL files
+//PARTICLES
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+
 
 // asgn5A
 //  A) a scene with at least 3 different primary shapes (e.g. cube, sphere, cylinder, etc), 
 //      w/ at least one animated, 
-//      a directional light source                  \
-//      a camera w/ perspective projection.         \
-//  B) at least one primary shape is textured       \
-//  C) a custom textured 3D model (obj file)        \
+//      a directional light source                  
+//      a camera w/ perspective projection.         
+//  B) at least one primary shape is textured       
+//  C) a custom textured 3D model (obj file)        
 
 //  EXTRA
-//      orbit controls                              \
+//      orbit controls                              
 //      3 different light sources
-//      a skybox in your scene using a cube map     \
+//      a skybox in your scene using a cube map     
 //      at least 20 primary shapes 
+//      WOOOOOWWWWWW
 
 
 function main() {
     // #region // SCENE & CAMERA SET UP //
-	const canvas = document.querySelector( '#c' );
-	const renderer = new THREE.WebGLRenderer( { antialias: true, canvas } );
+    const canvas = document.querySelector('#c');
+    const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    //post-processing system
+
+
+    const composer = new EffectComposer( renderer );
+
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
-	const fov = 45;
-	const aspect = 2; // the canvas default
-	const near = 0.1;
-	const far = 500;
-	const camera = new THREE.PerspectiveCamera( fov, aspect, near, far );
-	camera.position.set( 0, 10, 20 );
+    const fov = 45;
+    const aspect = 2; // the canvas default
+    const near = 0.1;
+    const far = 500;
+    const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+    camera.position.set(0, 5, 15);
     // #endregion
 
-	const controls = new OrbitControls( camera, canvas ); //let the user spin or orbit the camera around some point
+    const controls = new OrbitControls(camera, canvas); //let the user spin or orbit the camera around some point
     //input camera & DOM element to get input events
-	controls.target.set( 0, 5, 0 );
-	controls.update();
+    controls.target.set(0, 0, 0);
+    controls.update();
 
-	const scene = new THREE.Scene();
-	scene.background = new THREE.Color( 'black' );
-        
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('black');
+
+    /* POST PROCESSING: processed in order of their addition/insertion
+    instance, RenderPass, is executed first, then FilmPass & last, OutputPass*/
+    const renderPass = new RenderPass( scene, camera );
+    composer.addPass( renderPass );
+    const filmPass = new FilmPass();
+    composer.addPass( filmPass );
+    const unrealBloomPass = new UnrealBloomPass();
+    composer.addPass( unrealBloomPass );
+    const outputPass = new OutputPass();
+    composer.addPass( outputPass );
+
     {//skybox
         const loader = new THREE.CubeTextureLoader();
         const texture = loader.load([
-          './resources/sky.jpg',
-          './resources/sky.jpg',
-          './resources/sky1.jpg', //top
-          './resources/grass1.jpg', //bottom
-          './resources/sky.jpg',
-          './resources/sky.jpg' //side
+            './resources/sky.jpg',
+            './resources/sky.jpg',
+            './resources/sky1.jpg', //top
+            './resources/grass1.jpg', //bottom
+            './resources/sky.jpg',
+            './resources/sky.jpg' //side
         ]);
         scene.background = texture;
     }
 
-	{// ADDING LIGHT: SKYLIGHT
+    {// ADDING LIGHT: SKYLIGHT
 
-		const skyColor = 0xB1E1FF; // light blue
-		const groundColor = 0xB97A20; // brownish orange
-		const intensity = 1;
-		const light = new THREE.HemisphereLight( skyColor, groundColor, intensity );
-		scene.add( light );
+        const skyColor = 0xb5c3c7; // light blue
+        const groundColor = 0xB97A20; // brownish orange
+        const intensity = .1;
+        const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+        scene.add(light);
 
-	}
+    }
 
-	{// ADDING LIGHT: DIRECTIONALLIGHT 
+    {// ADDING LIGHT: DIRECTIONALLIGHT 
 
-		const color = 0xF7C452;
-		const intensity = 4;
-		const light = new THREE.DirectionalLight( color, intensity );
-		light.position.set( 0, 40, 40 );
-		light.target.position.set( 0, 0, -10 );
+        const color = 0xF7C452;
+        const intensity = .5;
+        const light = new THREE.DirectionalLight(color, intensity);
+        light.position.set(0, 40, 40);
+        light.target.position.set(0, 0, -10);
         light.castShadow = true;
-		scene.add( light );
-		scene.add( light.target );
+        scene.add(light);
+        scene.add(light.target);
         //Set up shadow properties for the light
         light.shadow.mapSize.width = 10000; // default
         light.shadow.mapSize.height = 10000; // default
-        light.shadow.camera.top = 50; light.shadow.camera.bottom = -50; 
-        light.shadow.camera.left = 50; light.shadow.camera.right = -50; 
+        light.shadow.camera.top = 50; light.shadow.camera.bottom = -50;
+        light.shadow.camera.left = 50; light.shadow.camera.right = -50;
         light.shadow.camera.near = 10; // default
         light.shadow.camera.far = 100; // default
         light.shadow.radius = 1.1;
-	}
+    }
 
     {// ADDING LIGHT: AMBIENTLIGHT 
         const color = 0xF28B76;
-        const intensity = 1
+        const intensity = .1;
         const light = new THREE.AmbientLight(color, intensity);
         scene.add(light);
     }
 
-	{// ADDING PRIMATIVE GEOMETRY: XY PLANE,
-		const planeSize = 40;
+    {// ADDING PRIMATIVE GEOMETRY: XY PLANE,
+        const planeSize = 40;
 
-		const loader = new THREE.TextureLoader();
-		//const texture = loader.load( 'https://threejs.org/manual/examples/resources/images/checker.png' );
-        const texture = loader.load( './resources/grass2.png' );
-		texture.colorSpace = THREE.SRGBColorSpace;
-		texture.wrapS = THREE.RepeatWrapping;
-		texture.wrapT = THREE.RepeatWrapping;
-		texture.magFilter = THREE.LinearFilter;
-		const repeats = planeSize / 2;
-		texture.repeat.set( repeats, repeats );
+        const loader = new THREE.TextureLoader();
+        const texture = loader.load('./resources/grass2.png');
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.magFilter = THREE.LinearFilter;
+        const repeats = planeSize / 2;
+        texture.repeat.set(repeats, repeats);
 
-		const planeGeo = new THREE.PlaneGeometry( planeSize, planeSize );
-        
-        const planeMat = new THREE.MeshPhongMaterial( {
-			map: texture,
-			side: THREE.DoubleSide,
-		} );
-		const mesh = new THREE.Mesh( planeGeo, planeMat );
+        const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
+
+        const planeMat = new THREE.MeshPhongMaterial({
+            map: texture,
+            color: 0x943a09,
+            side: THREE.DoubleSide,
+        });
+        const mesh = new THREE.Mesh(planeGeo, planeMat);
         mesh.receiveShadow = true;
-		mesh.rotation.x = Math.PI * - .5; //plane default = XY plane but ground in XZ plane (rotation needed).
-		scene.add( mesh );
+        mesh.rotation.x = Math.PI * - .5; //plane default = XY plane but ground in XZ plane (rotation needed).
+        scene.add(mesh);
 
-	}
+    }
+        {// ADDING PRIMATIVE GEOMETRY: XY PLANE,
+            const planeSize = 40;
+
+            const loader = new THREE.TextureLoader();
+            const texture = loader.load('./resources/grass2.png');
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.magFilter = THREE.LinearFilter;
+            const repeats = planeSize / 2;
+            texture.repeat.set(repeats, repeats);
+    
+            const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
+    
+            const planeMat = new THREE.MeshPhongMaterial({
+                color: 0xede5e1,
+                side: THREE.DoubleSide,
+            });
+            const mesh = new THREE.Mesh(planeGeo, planeMat);
+            mesh.receiveShadow = true;
+            mesh.rotation.x = Math.PI * - .5; //plane default = XY plane but ground in XZ plane (rotation needed).
+            scene.add(mesh);
+    
+        }
 
     let hills = [];
     let hillCoords = [
-        [20, -5, 20], [20,-5,15], [20,-5,10], [20,-5,5], [20, -5, 0],
+        [20, -5, 20], [20, -5, 15], [20, -5, 10], [20, -5, 5], [20, -5, 0],
     ];
     let furtherHillCoords = [
-        [30, 0, 30], [40, 0, 17] , [30, 0, 10], [30, 0, 0]
+        [30, 0, 30], [40, 0, 17], [30, 0, 10], [30, 0, 0]
     ];
     let coneCoords = [
-        [40, 0, 30],[30, 0, 20] , [40, 0, 0]
+        [40, 0, 30], [30, 0, 20], [40, 0, 0]
     ];
     {
         const loader = new THREE.TextureLoader();
         let textures = [
-            loader.load( './resources/grass.jpg' ),
-            loader.load( './resources/grass1.jpg' ),
-            loader.load( './resources/grass2.png' )
+            loader.load('./resources/grass.jpg'),
+            loader.load('./resources/grass1.jpg'),
+            loader.load('./resources/grass2.png')
         ]
-        textures.forEach(texture =>{
+        textures.forEach(texture => {
             texture.colorSpace = THREE.SRGBColorSpace;
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
         });
         let mats = [
-            new THREE.MeshPhongMaterial( {
+            new THREE.MeshPhongMaterial({
                 map: textures[0],
                 side: THREE.DoubleSide,
-            } ),
-            new THREE.MeshPhongMaterial( {
+            }),
+            new THREE.MeshPhongMaterial({
                 map: textures[1],
                 side: THREE.DoubleSide,
-            } ),
-            new THREE.MeshPhongMaterial( {
+            }),
+            new THREE.MeshPhongMaterial({
                 map: textures[2],
                 side: THREE.DoubleSide,
-            } )
+            })
         ];
-        
+
         let matrices = [
-            [1,0,1], [1,0,-1], [-1,0,1], [-1,0,-1]
+            [1, 0, 1], [1, 0, -1], [-1, 0, 1], [-1, 0, -1]
         ]
 
         hillCoords.forEach(coord => {
@@ -169,78 +219,63 @@ function main() {
             hills.push(addConeInstance(coord, 20, 30));
         });
 
-        
-        function addHillInstance(pos, radiusMax, radiusMin){
-            const posMatrixA = math.matrix([ [pos[0], 0, 0],[0, pos[1], 0], [0, 0, pos[2]] ]);
-            const posMatrixB = math.matrix([ [pos[2], 0, 0],[0, pos[1], 0], [0, 0, pos[0]] ]);
-            const spheres= [];
-            let sPos = [];
-            matrices.forEach(matrix =>{
-                const a = math.matrix(matrix)
-                sPos.push( math.multiply(a,posMatrixA));
-                sPos.push(math.multiply(a,posMatrixB));
-            });
-            
-            sPos.forEach( function (matrix, i) {
-                const geometry = new THREE.SphereGeometry( Math.random()*(radiusMax - radiusMin) + radiusMin, 6, 3,);
-                const rand = Math.random()*3;
-                /*let mat;
-                if (rand < 3) mat = mats[0];
-                else if(rand < 2) mat = mats[1];
-                else mat = mats[2];
-                console.log(mat);*/
-                const sphere = new THREE.Mesh( geometry, mats[Math.floor(Math.random() * 3)] )
-                //const sphere = new THREE.Mesh( geometry, mat )
-                sphere.rotation.y = Math.random()*3
-                sphere.rotation.z = Math.random()/5;
 
-                sphere.position.set(matrix._data[0], matrix._data[1],matrix._data[2]);
-                
+        function addHillInstance(pos, radiusMax, radiusMin) {
+            const posMatrixA = math.matrix([[pos[0], 0, 0], [0, pos[1], 0], [0, 0, pos[2]]]);
+            const posMatrixB = math.matrix([[pos[2], 0, 0], [0, pos[1], 0], [0, 0, pos[0]]]);
+            const spheres = [];
+            let sPos = [];
+            matrices.forEach(matrix => {
+                const a = math.matrix(matrix)
+                sPos.push(math.multiply(a, posMatrixA));
+                sPos.push(math.multiply(a, posMatrixB));
+            });
+
+            sPos.forEach(function (matrix, i) {
+                const geometry = new THREE.SphereGeometry(Math.random() * (radiusMax - radiusMin) + radiusMin, 6, 3,);
+                const rand = Math.random() * 3;
+                const sphere = new THREE.Mesh(geometry, mats[Math.floor(Math.random() * 3)])
+                sphere.rotation.y = Math.random() * 3
+                sphere.rotation.z = Math.random() / 5;
+
+                sphere.position.set(matrix._data[0], matrix._data[1], matrix._data[2]);
+
                 scene.add(sphere);
                 spheres.push(sphere);
             });
-            
+
 
             return (spheres);
         }
-        function addConeInstance(pos, radiusMax, radiusMin){
-            const posMatrixA = math.matrix([ [pos[0], 0, 0],[0, pos[1], 0], [0, 0, pos[2]] ]);
-            const posMatrixB = math.matrix([ [pos[2], 0, 0],[0, pos[1], 0], [0, 0, pos[0]] ]);
-            const spheres= [];
+        function addConeInstance(pos, radiusMax, radiusMin) {
+            const posMatrixA = math.matrix([[pos[0], 0, 0], [0, pos[1], 0], [0, 0, pos[2]]]);
+            const posMatrixB = math.matrix([[pos[2], 0, 0], [0, pos[1], 0], [0, 0, pos[0]]]);
+            const spheres = [];
             let sPos = [];
-            matrices.forEach(matrix =>{
+            matrices.forEach(matrix => {
                 const a = math.matrix(matrix)
-                sPos.push( math.multiply(a,posMatrixA));
-                sPos.push(math.multiply(a,posMatrixB));
+                sPos.push(math.multiply(a, posMatrixA));
+                sPos.push(math.multiply(a, posMatrixB));
             });
-            
-            sPos.forEach( function (matrix, i) {
-                const geometry = new THREE.ConeGeometry( Math.random()*(radiusMax - radiusMin) + radiusMin, 30, 10,);
-                const rand = Math.random()*3;
-                /*let mat;
-                if (rand < 3) mat = mats[0];
-                else if(rand < 2) mat = mats[1];
-                else mat = mats[2];
-                console.log(mat);*/
-                const sphere = new THREE.Mesh( geometry, mats[Math.floor(Math.random() * 3)] )
-                //const sphere = new THREE.Mesh( geometry, mat )
-                sphere.rotation.y = Math.random()*3
-                sphere.rotation.z = Math.random()/5;
 
-                sphere.position.set(matrix._data[0], matrix._data[1],matrix._data[2]);
-                
+            sPos.forEach(function (matrix, i) {
+                const geometry = new THREE.ConeGeometry(Math.random() * (radiusMax - radiusMin) + radiusMin, 30, 10,);
+                const rand = Math.random() * 3;
+                const sphere = new THREE.Mesh(geometry, mats[Math.floor(Math.random() * 3)])
+
+                sphere.rotation.y = Math.random() * 3
+                sphere.rotation.z = Math.random() / 5;
+
+                sphere.position.set(matrix._data[0], matrix._data[1], matrix._data[2]);
+
                 scene.add(sphere);
                 spheres.push(sphere);
             });
-            
+
 
             return (spheres);
         }
     }
-
-
-    
-    
     function addOBJ(name, count, min, max) {
         let objs = [];
         const mtlLoader = new MTLLoader();
@@ -248,26 +283,23 @@ function main() {
             mtl.preload();
             const objLoader = new OBJLoader();
             objLoader.setMaterials(mtl);
-    
+
             objLoader.load('./resources/' + name + '.obj', (root) => {
-            
+
                 scene.add(root);
                 for (let i = 0; i < count; i++) {
                     root.castShadow = true;
                     let instance = root.clone(true);
-                    instance.position.x = (Math.random()*(max-min)+min);
-                    instance.position.z = (Math.random()*(max-min)+min);
-                    instance.position.y=0;
-                    instance.rotation.y = Math.random()*3;
-                    instance.rotation.x = Math.random()/8;
-                    instance.rotation.z = Math.random()/8;
-
-                    // Add the instance to the scene
+                    instance.position.x = (Math.random() * (max - min) + min);
+                    instance.position.z = (Math.random() * (max - min) + min);
+                    instance.position.y = 0;
+                    instance.rotation.y = Math.random() * 3;
+                    instance.rotation.x = Math.random() / 8;
+                    instance.rotation.z = Math.random() / 8;
                     instance.phase = (Math.random() * 2 * Math.PI);
-                    instance.traverse(function(child){child.castShadow = true; child.receiveShadow = true});
+                    instance.traverse(function (child) { child.castShadow = true; child.receiveShadow = true });
                     instance.castShadow = true;
                     instance.recieveShadow = true;
-                    //if(name == 'tree' || name == 'pineTree') instance.castShadow = true;
                     scene.add(instance);
                     objs.push(instance);
                 }
@@ -275,10 +307,10 @@ function main() {
         });
         return (objs);
     }
-    
+
     let trees = [];
     let grass = [];
-    
+
     trees.push(addOBJ('pineTree', 15, -14, 14))
     trees.push(addOBJ('tree', 20, -14, 14))
     addOBJ('rock1', 10, -14, 14);
@@ -289,13 +321,13 @@ function main() {
     let grassSwayAmount = [];
     let treeSwayAmount = [];
 
-    trees.forEach((tree, i) =>{
-        treeSwayAmount = math.random()*(.01 - .005) + .005
+    trees.forEach((tree, i) => {
+        treeSwayAmount = math.random() * (.01 - .005) + .005
     })
-    grass.forEach((gra, i) =>{
-        treeSwayAmount = math.random()*(.05 - .01) + .01
+    grass.forEach((gra, i) => {
+        treeSwayAmount = math.random() * (.05 - .01) + .01
     })
-	{//LOADING & ADDING 3D .OBJ: TREE
+    {//LOADING & ADDING 3D .OBJ: TREE
 
         const mtlLoader = new MTLLoader(); //.mtl, contains material data
         mtlLoader.load('./resources/tree.mtl', (mtl) => { //loads the .MTL file, when finished loading:
@@ -307,54 +339,96 @@ function main() {
             });
         });
 
-	}
-	function resizeRendererToDisplaySize( renderer ) {
+    }
+    let particlePositions;
+    let particlesGeometry;
+    
+    function addParticles() {
+        particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 5000;
+        const posArray = new Float32Array(particlesCount * 3);
+    
+        for (let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 75;
+        }
+    
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        particlePositions = particlesGeometry.attributes.position.array;
+    
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.5,
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.7,
+            blending: THREE.AdditiveBlending
+        });
+    
+        const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particles);
+    }
 
-		const canvas = renderer.domElement;
-		const width = canvas.clientWidth;
-		const height = canvas.clientHeight;
-		const needResize = canvas.width !== width || canvas.height !== height;
-		if ( needResize ) {
+    addParticles();
 
-			renderer.setSize( width, height, false );
+    function resizeRendererToDisplaySize(renderer) {
 
-		}
+        const canvas = renderer.domElement;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        const needResize = canvas.width !== width || canvas.height !== height;
+        if (needResize) {
 
-		return needResize;
+            renderer.setSize(width, height, false);
 
-	}
-    console.log(scene)
-	function render(time) {
+        }
 
-		if ( resizeRendererToDisplaySize( renderer ) ) {
+        return needResize;
 
-			const canvas = renderer.domElement;
-			camera.aspect = canvas.clientWidth / canvas.clientHeight;
-			camera.updateProjectionMatrix();
+    }
+    function animateParticles() {
+        for (let i = 0; i < particlePositions.length; i += 3) {
+            particlePositions[i] += (Math.random() * 0.1 - 0.05);
 
-		}
+            if(particlePositions[i + 1] < 0) {
+                particlePositions[i + 1] = Math.random() * 2 + 50;
+            }else{
+                particlePositions[i + 1] += (Math.random() * 0.1 - 0.08);
+            }
+            particlePositions[i + 2] += (Math.random() * 0.1 - 0.05);
+        }
+        particlesGeometry.attributes.position.needsUpdate = true;
+    }
+    function render(time) {
 
-        grass.forEach( list => {
-            list.forEach( obj =>{
-                const swayAmount = Math.sin(time*.001 + obj.phase); // Calculate sway factor
+        if (resizeRendererToDisplaySize(renderer)) {
+
+            const canvas = renderer.domElement;
+            camera.aspect = canvas.clientWidth / canvas.clientHeight;
+            camera.updateProjectionMatrix();
+
+        }
+
+        grass.forEach(list => {
+            list.forEach(obj => {
+                const swayAmount = Math.sin(time * .001 + obj.phase); // Calculate sway factor
                 obj.rotation.y = swayAmount * 0.1;
             });
         });
-        
-        trees.forEach( list => {
-            list.forEach( (obj,i) =>{
-                const swayAmount = Math.sin(time*.001 + obj.phase); // Calculate sway factor
+
+        trees.forEach(list => {
+            list.forEach((obj, i) => {
+                const swayAmount = Math.sin(time * .001 + obj.phase); // Calculate sway factor
                 obj.rotation.z = swayAmount * 0.01;
                 obj.rotation.x = swayAmount * 0.01;
             });
         });
-        
-		renderer.render( scene, camera );
-		requestAnimationFrame( render );
 
-	}
+        animateParticles();
+        composer.render(scene, camera);
+        requestAnimationFrame(render);
 
-	requestAnimationFrame( render );
+    }
+
+    requestAnimationFrame(render);
 
 }
 
