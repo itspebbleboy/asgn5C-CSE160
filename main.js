@@ -158,7 +158,7 @@ function main() {
             const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
     
             const planeMat = new THREE.MeshPhongMaterial({
-                color: 0xede5e1,
+                color: 0x5e77b5,
                 side: THREE.DoubleSide,
             });
             const mesh = new THREE.Mesh(planeGeo, planeMat);
@@ -357,7 +357,7 @@ function main() {
     
         const particlesMaterial = new THREE.PointsMaterial({
             size: 0.5,
-            color: 0xffffff,
+            color: 0x1f3b82,
             transparent: true,
             opacity: 0.7,
             blending: THREE.AdditiveBlending
@@ -386,14 +386,14 @@ function main() {
     }
     function animateParticles() {
         for (let i = 0; i < particlePositions.length; i += 3) {
-            particlePositions[i] += (Math.random() * 0.1 - 0.05);
+            particlePositions[i] += (Math.random() * 0.01 - 0.005);
 
             if(particlePositions[i + 1] < 0) {
-                particlePositions[i + 1] = Math.random() * 2 + 50;
+                particlePositions[i + 1] =( Math.random() * 10 - 5) + 50;
             }else{
-                particlePositions[i + 1] += (Math.random() * 0.1 - 0.08);
+                particlePositions[i + 1] += (Math.random() * 0.5 - .75);
             }
-            particlePositions[i + 2] += (Math.random() * 0.1 - 0.05);
+            particlePositions[i + 2] += (Math.random() * 0.01 - 0.005);
         }
         particlesGeometry.attributes.position.needsUpdate = true;
     }
